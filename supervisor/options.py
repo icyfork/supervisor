@@ -473,7 +473,7 @@ class ServerOptions(Options):
             logfile = section.logfile
 
         if not logfile[0:7] == 'fluent:':
-          self.logfile = normalize_path(logfile)
+            self.logfile = normalize_path(logfile)
 
         if self.pidfile:
             pidfile = self.pidfile
