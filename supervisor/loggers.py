@@ -19,6 +19,14 @@ except ImportError:
     # only required when 'syslog' is specified as the log filename
     pass
 
+try:
+    import socket
+    from fluent import sender
+    from fluent import event
+except ImportError:
+    # only required when 'fluent' is specified as the log filename
+    pass
+
 class LevelsByName:
     CRIT = 50   # messages that probably require immediate user attention
     ERRO = 40   # messages that indicate a potentially ignorable error condition
@@ -322,6 +330,37 @@ class SyslogHandler(Handler):
         except:
             self.handleError()
 
+class FluentHandler(Handler):
+    def __init__(self, tag='_main', host='localhost', port=24224):
+        assert 'sender' in globals(), "Fluent.sender module not present"
+        assert 'event'  in globals(), "Fluent.event module not present"
+
+        self.fluent_tag = tag
+        self.fluent_host = host
+        self.fluent_port = port
+
+        if host and port:
+          sender.setup("supervisord.%s" % tag, host=host, port=port)
+
+    def close(self):
+        pass
+
+    def reopen(self):
+        sender.setup(self.fluent_tag, self.fluent_host, self.fluent_port)
+
+    def emit(self, record):
+        try:
+            params = record.asdict()
+            params["levelname"] = params["levelname"].lower()
+            params["host"] = socket.gethostname()
+
+            if self.fluent_host and self.fluent_port:
+              event.Event("_main", params)
+            else:
+              event.Event(self.fluent_tag, params)
+        except:
+            self.handleError()
+
 def getLogger(filename, level, fmt, rotating=False, maxbytes=0, backups=0,
               stdout=False):
 
@@ -339,6 +378,16 @@ def getLogger(filename, level, fmt, rotating=False, maxbytes=0, backups=0,
     elif filename == 'syslog':
         handlers.append(SyslogHandler())
 
+    elif filename[0:7] == 'fluent:':
+        fluent = filename.split(":")
+        fluent_size = len(fluent)
+
+        fluent_tag = fluent[1] if fluent_size > 1 else "supervisord"
+        fluent_host = fluent[2] if fluent_size > 2 else None
+        fluent_port = int(fluent[3]) if fluent_size > 3 else None
+
+        handlers.append(FluentHandler(fluent_tag, fluent_host, fluent_port))
+
     else:
         if rotating is False:
             handlers.append(FileHandler(filename))
@@ -354,4 +403,3 @@ def getLogger(filename, level, fmt, rotating=False, maxbytes=0, backups=0,
         logger.addHandler(handler)
 
     return logger
-

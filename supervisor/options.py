@@ -472,7 +472,8 @@ class ServerOptions(Options):
         else:
             logfile = section.logfile
 
-        self.logfile = normalize_path(logfile)
+        if not logfile[0:7] == 'fluent:':
+          self.logfile = normalize_path(logfile)
 
         if self.pidfile:
             pidfile = self.pidfile
@@ -2027,4 +2028,3 @@ class NoPermission(ProcessException):
     """ Indicates that the file cannot be executed because the supervisor
     process does not possess the appropriate UNIX filesystem permission
     to execute the file. """
-
