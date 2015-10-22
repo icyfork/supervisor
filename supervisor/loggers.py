@@ -340,7 +340,7 @@ class FluentHandler(Handler):
         self.fluent_port = port
 
         if host and port:
-          sender.setup("supervisord.%s" % tag, host=host, port=port)
+            sender.setup("supervisord.%s" % tag, host=host, port=port)
 
     def close(self):
         pass
@@ -355,9 +355,9 @@ class FluentHandler(Handler):
             params["host"] = socket.gethostname()
 
             if self.fluent_host and self.fluent_port:
-              event.Event("_main", params)
+                event.Event("_main", params)
             else:
-              event.Event(self.fluent_tag, params)
+                event.Event(self.fluent_tag, params)
         except:
             self.handleError()
 
