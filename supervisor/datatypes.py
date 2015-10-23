@@ -335,7 +335,21 @@ def existing_directory(v):
 def existing_dirpath(v):
     nv = v % {'here':here}
     nv = os.path.expanduser(nv)
-    dir = os.path.dirname(nv)
+    if nv[0:7] == "fluent:":
+        fluent = 1
+    else:
+        fluent = 0
+
+    if fluent == 1:
+        fluent_s = nv.split(":")
+        if len(fluent_s) > 4:
+            check_path = fluent_s[4]
+        else:
+            check_path = ""
+    else:
+        check_path = nv
+
+    dir = os.path.dirname(check_path)
     if not dir:
         # relative pathname with no directory component
         return nv

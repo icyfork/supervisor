@@ -331,13 +331,14 @@ class SyslogHandler(Handler):
             self.handleError()
 
 class FluentHandler(Handler):
-    def __init__(self, tag='_main', host='localhost', port=24224):
+    def __init__(self, tag='_main', host='localhost', port=24224, fallback=None):
         assert 'sender' in globals(), "Fluent.sender module not present"
         assert 'event'  in globals(), "Fluent.event module not present"
 
         self.fluent_tag = tag
         self.fluent_host = host
         self.fluent_port = port
+        self.fluent_fallback = fallback
 
         if host and port:
             sender.setup("supervisord.%s" % tag, host=host, port=port)
@@ -358,6 +359,9 @@ class FluentHandler(Handler):
                 event.Event("_main", params)
             else:
                 event.Event(self.fluent_tag, params)
+
+            if self.fluent_fallback and not sender._global_sender.socket:
+                self.fluent_fallback.emit(record)
         except:
             self.handleError()
 
@@ -378,6 +382,7 @@ def getLogger(filename, level, fmt, rotating=False, maxbytes=0, backups=0,
     elif filename == 'syslog':
         handlers.append(SyslogHandler())
 
+    # FIXME: add a backup handler here....
     elif filename[0:7] == 'fluent:':
         fluent = filename.split(":")
         fluent_size = len(fluent)
@@ -385,8 +390,25 @@ def getLogger(filename, level, fmt, rotating=False, maxbytes=0, backups=0,
         fluent_tag = fluent[1] if fluent_size > 1 else "supervisord"
         fluent_host = fluent[2] if fluent_size > 2 else None
         fluent_port = int(fluent[3]) if fluent_size > 3 else None
+        fluent_file = fluent[4] if fluent_size > 4 else None
 
-        handlers.append(FluentHandler(fluent_tag, fluent_host, fluent_port))
+        if fluent_port == 0:
+            fluent_port = None
+
+        if fluent_file:
+            if rotating is False:
+                fluent_fallback = FileHandler(fluent_file)
+            else:
+                fluent_fallback = RotatingFileHandler(fluent_file,'a',maxbytes,backups)
+
+            # FIXME: This format doesn't work for FileHandler
+            fallback_method = '%(asctime)s %(levelname)s %(message)s\n'
+            fluent_fallback.setFormat(fallback_method)
+            fluent_fallback.setLevel(level)
+        else:
+            fluent_fallback = None
+
+        handlers.append(FluentHandler(fluent_tag, fluent_host, fluent_port, fluent_fallback))
 
     else:
         if rotating is False:
