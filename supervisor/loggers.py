@@ -402,6 +402,9 @@ def getLogger(filename, level, fmt, rotating=False, maxbytes=0, backups=0,
             else:
                 fluent_fallback = RotatingFileHandler(fluent_file,'a',maxbytes,backups)
 
+            # FIXME: This format is not good for multiple purpose
+            # FIXME: For main activities, it's good. However for
+            # FIXME: application fallback, there would be an extra line
             fallback_format = '%(asctime)s %(levelname)s %(message)s\n'
             fluent_fallback.setFormat(fallback_format)
             fluent_fallback.setLevel(level)
