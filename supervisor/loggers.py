@@ -394,6 +394,7 @@ def getLogger(filename, level, fmt, rotating=False, maxbytes=0, backups=0,
 
         if fluent_port == 0:
             fluent_port = None
+            fluent_host = None
 
         if fluent_file:
             if rotating is False:
@@ -401,9 +402,8 @@ def getLogger(filename, level, fmt, rotating=False, maxbytes=0, backups=0,
             else:
                 fluent_fallback = RotatingFileHandler(fluent_file,'a',maxbytes,backups)
 
-            # FIXME: This format doesn't work for FileHandler
-            fallback_method = '%(asctime)s %(levelname)s %(message)s\n'
-            fluent_fallback.setFormat(fallback_method)
+            fallback_format = '%(asctime)s %(levelname)s %(message)s\n'
+            fluent_fallback.setFormat(fallback_format)
             fluent_fallback.setLevel(level)
         else:
             fluent_fallback = None
