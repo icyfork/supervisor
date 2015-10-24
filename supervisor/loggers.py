@@ -354,14 +354,29 @@ class FluentHandler(Handler):
             params = record.asdict()
             params["levelname"] = params["levelname"].lower()
             params["host"] = socket.gethostname()
+            params["message"] = params["message"].strip()
 
+            socket_before = sender.get_global_sender().socket
             if self.fluent_host and self.fluent_port:
                 event.Event("_main", params)
             else:
                 event.Event(self.fluent_tag, params)
+            socket_now = sender.get_global_sender().socket
 
-            if self.fluent_fallback and not sender._global_sender.socket:
+            sent = True
+            if not sender.get_global_sender().pendings:
+                # Fluent has tried to reconnect
+                if socket_now and not socket_before:
+                    sent = False
+            else:
+                sent = socket_now
+
+            # FIXME: Fallback doesn't work all the time.
+            # FIXME: We may lost some message, i.e., if the
+            # FIXME: fluentd has been stopped.
+            if self.fluent_fallback and not sent:
                 self.fluent_fallback.emit(record)
+
         except:
             self.handleError()
 
