@@ -363,13 +363,11 @@ class FluentHandler(Handler):
                 event.Event(self.fluent_tag, params)
             socket_now = sender.get_global_sender().socket
 
-            sent = True
-            if not sender.get_global_sender().pendings:
-                # Fluent has tried to reconnect
-                if socket_now and not socket_before:
-                    sent = False
-            else:
-                sent = socket_now
+            sent = socket_now
+            if not sender.get_global_sender().pendings and not socket_before:
+                sent = False
+
+            sent = (sent and socket_now)
 
             # FIXME: Fallback doesn't work all the time.
             # FIXME: We may lost some message, i.e., if the
