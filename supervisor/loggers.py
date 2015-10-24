@@ -351,6 +351,11 @@ class FluentHandler(Handler):
 
     def emit(self, record):
         try:
+            if not sender.get_global_sender():
+              if self.fluent_fallback:
+                  self.fluent_fallback.emit(record)
+              return
+
             params = record.asdict()
             params["levelname"] = params["levelname"].lower()
             params["host"] = socket.gethostname()
